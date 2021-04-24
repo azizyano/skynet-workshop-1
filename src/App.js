@@ -12,19 +12,27 @@ import { Header, Tab, Container } from 'semantic-ui-react';
 /*        Step 4.2 Code goes here               */
 /************************************************/
 
-/*****/
+import { ContentRecordDAC } from '@skynethq/content-record-library';
 
 /************************************************/
 /*        Step 1.2 Code goes here               */
 /************************************************/
 
-/*****/
+// Import the SkynetClient and a helper
+import { SkynetClient } from 'skynet-js';
+//
+// We'll define a portal to allow for developing on localhost.
+// When hosted on a skynet portal, SkynetClient doesn't need any arguments.
+const portal = 'https://siasky.net/';
+
+// Initiate the SkynetClient
+const client = new SkynetClient(portal);
 
 /************************************************/
 /*        Step 4.3 Code goes here               */
 /************************************************/
 
-/*****/
+const contentRecord = new ContentRecordDAC();
 
 function App() {
   // Define app state helpers
@@ -38,7 +46,10 @@ function App() {
   // Step 2 Helpers
   const [name, setName] = useState('');
   const [webPageSkylink, setWebPageSkylink] = useState('');
-
+  // test helpers
+  const [test, setTest] = useState([
+    { id: "1", question: "add question", answers: {a:'answer1', b: "answer2", c: "answer2", d: "answer2"}, correctAnswer: 'correct answer'}
+  ]);
   // Step 3 Helpers
   const [dataKey, setDataKey] = useState('');
   const [userColor, setUserColor] = useState('#000000');
@@ -55,8 +66,8 @@ function App() {
   /************************************************/
   /*        Step 3.1 Code goes here               */
   /************************************************/
-
-  const dataDomain = '';
+  // choose a data domain for saving files in MySky
+  const dataDomain = 'localhost';
 
   /*****/
 
@@ -65,7 +76,33 @@ function App() {
     /************************************************/
     /*        Step 3.2 Code goes here               */
     /************************************************/
-    /*****/
+    // define async setup function
+    async function initMySky() {
+      try {
+        // load invisible iframe and define app's data domain
+        // needed for permissions write
+        const mySky = await client.loadMySky(dataDomain);
+
+        // load necessary DACs and permissions
+        await mySky.loadDacs(contentRecord);
+
+        // check if user is already logged in with permissions
+        const loggedIn = await mySky.checkLogin();
+
+        // set react state for login status and
+        // to access mySky in rest of app
+        setMySky(mySky);
+        setLoggedIn(loggedIn);
+        if (loggedIn) {
+          setUserID(await mySky.userID());
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // call async setup function
+    initMySky();
   }, []);
 
   // Handle form submission. This is where the bulk of the workshop logic is
@@ -83,7 +120,17 @@ function App() {
     /************************************************/
     /*        Step 1.3 Code goes here               */
     /************************************************/
+    // Upload user's file and get backs descriptor for our Skyfile
+    const { skylink } = await client.uploadFile(file);
 
+    // skylinks start with `sia://` and don't specify a portal URL
+    // we can generate URLs for our current portal though.
+    const skylinkUrl = await client.getSkylinkUrl(skylink);
+
+    console.log('File Uploaded:', skylinkUrl);
+
+    // To use this later in our React app, save the URL to the state.
+    setFileSkylink(skylinkUrl);
     /************************************************/
     /*        Part 2: Upload a Web Page             */
     /************************************************/
@@ -92,7 +139,29 @@ function App() {
     /************************************************/
     /*        Step 2.1 Code goes here               */
     /************************************************/
+    // Create the text of an html file what will be uploaded to Skynet
+    // We'll use the skylink from Part 1 in the file to load our Skynet-hosted image.
+    const webPage = generateWebPage(name, test, skylinkUrl, userID, filePath);
 
+    // Build our directory object, we're just including the file for our webpage.
+    const webDirectory = {
+      'index.html': webPage,
+      // 'couldList.jpg': moreFiles,
+    };
+
+    // Upload user's webpage
+    const { skylink: dirSkylink } = await client.uploadDirectory(
+      webDirectory,
+      'certificate'
+    );
+
+    // generate a URL for our current portal
+    const dirSkylinkUrl = await client.getSkylinkUrl(dirSkylink);
+
+    console.log('Web Page Uploaded:', dirSkylinkUrl);
+
+    // To use this later in our React app, save the URL to the state.
+    setWebPageSkylink(dirSkylinkUrl);
     /************************************************/
     /*        Part 3: MySky                         */
     /************************************************/
@@ -102,7 +171,17 @@ function App() {
     /*        Step 3.6 Code goes here              */
     /************************************************/
 
-    /*****/
+      // create JSON data to write to MySky
+    const jsonData = {
+      name,
+      test,
+      skylinkUrl,
+      dirSkylinkUrl,
+      color: userColor,
+    };
+
+    // call helper function for MySky Write
+    await handleMySkyWrite(jsonData);
 
     setLoading(false);
   };
@@ -111,25 +190,52 @@ function App() {
     /************************************************/
     /*        Step 3.3 Code goes here               */
     /************************************************/
-    /*****/
+    // Try login again, opening pop-up. Returns true if successful
+    const status = await mySky.requestLoginAccess();
+
+    // set react state
+    setLoggedIn(status);
+
+    if (status) {
+      setUserID(await mySky.userID());
+    }
   };
 
   const handleMySkyLogout = async () => {
     /************************************************/
     /*        Step 3.4 Code goes here              */
     /************************************************/
-    /*****/
+    // call logout to globally logout of mysky
+    await mySky.logout();
+
+    //set react state
+    setLoggedIn(false);
+    setUserID('');
   };
 
   const handleMySkyWrite = async (jsonData) => {
     /************************************************/
     /*        Step 3.7 Code goes here              */
     /************************************************/
-    /*****/
+    // Use setJSON to save the user's information to MySky file
+    try {
+      console.log('userID', userID);
+      console.log('filePath', filePath);
+      console.log('question', test);
+      await mySky.setJSON(filePath, jsonData);
+    } catch (error) {
+      console.log(`error with setJSON: ${error.message}`);
+    }
     /************************************************/
     /*        Step 4.7 Code goes here              */
     /************************************************/
-    /*****/
+    try {
+      await contentRecord.recordNewContent({
+        skylink: jsonData.dirSkylinkUrl,
+      });
+    } catch (error) {
+      console.log(`error with CR DAC: ${error.message}`);
+    }
   };
 
   // loadData will load the users data from SkyDB
@@ -142,7 +248,20 @@ function App() {
     /*        Step 4.5 Code goes here              */
     /************************************************/
 
-    /*****/
+    // Use getJSON to load the user's information from SkyDB
+    const { data } = await mySky.getJSON(filePath);
+
+    // To use this elsewhere in our React app, save the data to the state.
+    if (data) {
+      setName(data.name);
+      setTest(data.test);
+      setFileSkylink(data.skylinkUrl);
+      setWebPageSkylink(data.dirSkylinkUrl);
+      setUserColor(data.color);
+      console.log('User data loaded from SkyDB!');
+    } else {
+      console.error('There was a problem with getJSON');
+    }
 
     setLoading(false);
   };
@@ -155,7 +274,28 @@ function App() {
     /*        Step 4.6 Code goes here              */
     /************************************************/
 
-    /*****/
+    console.log('Saving user data to MySky');
+
+    const jsonData = {
+      name,
+      test,
+      skylinkUrl: fileSkylink,
+      dirSkylinkUrl: webPageSkylink,
+      color: userColor,
+    };
+
+    try {
+      // write data with MySky
+      await mySky.setJSON(filePath, jsonData);
+      console.log("json data",jsonData)
+      // Tell contentRecord we updated the color
+      await contentRecord.recordInteraction({
+        skylink: webPageSkylink,
+        metadata: { action: 'updatedColorOf' },
+      });
+    } catch (error) {
+      console.log(`error with setJSON: ${error.message}`);
+    }
 
     setLoading(false);
   };
@@ -169,6 +309,7 @@ function App() {
     handleSaveAndRecord,
     loadData,
     name,
+    test,
     dataKey,
     userColor,
     activeTab,
@@ -182,9 +323,10 @@ function App() {
     setDataKey,
     setFile,
     setName,
+    setTest,
     setUserColor,
   };
-
+  
   // handleSelectTab handles selecting the part of the workshop
   const handleSelectTab = (e, { activeIndex }) => {
     setActiveTab(activeIndex);

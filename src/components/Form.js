@@ -14,7 +14,9 @@ import {
 import { PopoverPicker } from './PopoverPicker';
 import Links from './Links';
 import FileDrop from './Filedrop';
-
+import { produce } from 'immer';
+import { generate } from 'shortid';
+import { fireEvent } from '@testing-library/dom';
 // WorkshopForm is a simple form used for the Skynet Workshop
 const WorkshopForm = (props) => {
   const [uploadPreview, setUploadPreview] = useState(props.fileSkylink);
@@ -22,13 +24,17 @@ const WorkshopForm = (props) => {
   useEffect(() => {
     setUploadPreview(props.fileSkylink);
   }, [props.fileSkylink]);
-
+  const [test, setTest] = useState([
+    {
+      id: '1',
+      question: 'add question',
+      answers: { a: 'answer1', b: 'answer2', c: 'answer2', d: 'answer2' },
+      correctAnswer: 'correct answer',
+    },
+  ]);
   return (
     <>
       <Segment>
-        <Dimmer active={props.loading}>
-          <Loader active={props.loading} />
-        </Dimmer>
 
         {props.activeTab > 1 && (
           <>
@@ -156,6 +162,120 @@ const WorkshopForm = (props) => {
                   }}
                 />
               </Form.Group>
+
+              {props.test.map((q, index) => {
+                return (
+                  <>
+                    <Header as="h4">Input for quiz</Header>
+                    <Button
+                      color='teal'
+                      content='Create New Order'
+                      icon='add'
+                      labelPosition='left'
+                      onClick={() => {
+                        setTest((currentquestion) => [
+                          ...currentquestion,
+                          {
+                            id: generate(),
+                            question: '',
+                            answers: {},
+                            correctAnswer: '',
+                          },
+                        ]);
+                      }}
+                    >
+                      Add question
+                    </Button>
+                      <Form.Input 
+                        placeholder="Enter your question"
+                        onChange={(e) => {
+                          const question = e.target.value;
+                          setTest((currentquestion) =>
+                            produce(currentquestion, (v) => {
+                              v[index].question = question;
+                            })
+                          );
+                        }}
+                        value={q.question}
+                      />
+                      
+                        <Form.Input
+                          placeholder="answer 1"
+                          onChange={(e) => {
+                            const answer = e.target.value;
+                            setTest((currentquestion) =>
+                              produce(currentquestion, (v) => {
+                                v[index].answers.a = answer;
+                              })
+                            );
+                          }}
+                          value={q.answer}
+                        />
+                        <Form.Input 
+                          placeholder="answer 2"
+                          onChange={(e) => {
+                            const answer = e.target.value;
+                            setTest((currentquestion) =>
+                              produce(currentquestion, (v) => {
+                                v[index].answers.b = answer;
+                              })
+                            );
+                          }}
+                          value={q.answer}
+                        />
+                        <Form.Input 
+                          placeholder="answer 3"
+                          onChange={(e) => {
+                            const answer = e.target.value;
+                            setTest((currentquestion) =>
+                              produce(currentquestion, (v) => {
+                                v[index].answers.c = answer;
+                              })
+                            );
+                          }}
+                          value={q.answer}
+                        />
+                        <Form.Input 
+                          placeholder="answer 4"
+                          onChange={(e) => {
+                            const answer = e.target.value;
+                            setTest((currentquestion) =>
+                              produce(currentquestion, (v) => {
+                                v[index].answers.d = answer;
+                              })
+                            );
+                          }}
+                          value={q.answer}
+                        />
+                      
+                      <Form.Input
+                        placeholder="correct answer"
+                        onChange={(e) => {
+                          const correctAnswer = e.target.value;
+                          setTest((currentquestion) =>
+                            produce(currentquestion, (v) => {
+                              v[index].correctAnswer = correctAnswer;
+                            })
+                          );
+                        }}
+                        value={q.correctAnswer}
+                      />
+                    <Button
+                      color='red'
+                      content='Create New Order'
+                      icon='delete'
+                      labelPosition='left'
+                      onClick={() => {
+                        setTest((currentquestion) =>
+                          currentquestion.filter((x) => x.id !== q.id)
+                        );
+                      }}
+                    >
+                      X
+                    </Button>
+                  </>
+                );
+              })}
             </>
           )}
           {/* Input for file */}
@@ -164,6 +284,7 @@ const WorkshopForm = (props) => {
             <Form.Field>
               <label>Avatar Photo</label>
               <FileDrop
+                settest={props.setTest(test)}
                 setFile={props.setFile}
                 setUploadPreview={setUploadPreview}
               />
