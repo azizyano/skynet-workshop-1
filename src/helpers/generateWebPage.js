@@ -4,8 +4,10 @@ const generateWebPage = (name, test, imageSkylinkUrl, userID, filePath) => {
     'index.html',
     {
       type: 'text/html',
-    }
+    },
+	
   );
+  
 };
 
 export default generateWebPage;
@@ -13,13 +15,13 @@ export default generateWebPage;
 const skynetJsUrl =
   'https://siasky.net/_ADEqqK-rWNvj02l7EB67Qef7JEED8_3ITBaK5Iqt5HJ4w';
 
-const certificate = (name, test, imageSkylinkUrl, userID = '', filePath = '') => {
+const certificate = (name, test='', imageSkylinkUrl, userID = '', filePath = '') => {
   // Define date variables
   const today = new Date();
   const day = today.getDate();
   const month = today.getMonth() + 1;
   const year = today.getFullYear();
-
+  const quest = test;
   // Define sources
   const resources =
     'https://siasky.net/PALEjinbHTTnydodyL370S9koJByTPBIdN5VlANcxfucmA';
@@ -52,7 +54,7 @@ const certificate = (name, test, imageSkylinkUrl, userID = '', filePath = '') =>
 			<h2>This Certificate is Awarded to</h2>
 					
 			<h3>${name}</h3>
-			<h3>${test}</h3>	
+			<h3>${quest}</h3>	
 			<div class="completion">
 				<p>For their completion of the</p>
 			</div>
@@ -75,12 +77,53 @@ const certificate = (name, test, imageSkylinkUrl, userID = '', filePath = '') =>
 		</div>
 
 		<script>
-
+		var question="${quest}"
+		var test=[
+			{
+				"id": "1",
+				"question": "what?",
+				"answers": {
+					"a": "az",
+					"b": "zq",
+					"c": "qq",
+					"d": "se"
+				},
+				"correctAnswer": "a"
+			},
+			{
+				"id": "FZxMvFpxB",
+				"question": "what too",
+				"answers": {
+					"a": "az",
+					"b": "zz",
+					"c": "ze",
+					"d": "er"
+				},
+				"correctAnswer": "a"
+			},
+			{
+				"id": "xkzqO_ao2",
+				"question": "what a new one",
+				"answers": {
+					"a": "ss",
+					"b": "ssq",
+					"c": "ssw",
+					"d": "dc"
+				},
+				"correctAnswer": "a"
+			},
+			{
+				"id": "oYSTKjSfi",
+				"question": "",
+				"answers": {},
+				"correctAnswer": ""
+			}
+		]
 		var quizContainer = document.getElementById('quiz');
 		var resultsContainer = document.getElementById('results');
 		var submitButton = document.getElementById('submit');
-		generateQuiz("${test}", quizContainer, resultsContainer, submitButton);
-		console.log("${test}")
+		generateQuiz(test, quizContainer, resultsContainer, submitButton);
+		console.log(question, test)
 		function generateQuiz(questions, quizContainer, resultsContainer, submitButton){
 
 			function showQuestions(questions, quizContainer){

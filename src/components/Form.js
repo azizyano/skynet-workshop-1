@@ -169,7 +169,6 @@ const WorkshopForm = (props) => {
                     <Header as="h4">Input for quiz</Header>
                     <Button
                       color='teal'
-                      content='Create New Order'
                       icon='add'
                       labelPosition='left'
                       onClick={() => {
